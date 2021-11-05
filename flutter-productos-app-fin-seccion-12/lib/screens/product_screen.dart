@@ -130,19 +130,30 @@ class _ProductScreenBody extends StatelessWidget {
         floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
         floatingActionButton: FloatingActionButton(
           // ternario a prop de widget
-          child: productService.isSaving
+          child: productService.saving
               ? CircularProgressIndicator(color: Colors.white)
               : Icon(Icons.save_outlined),
           //cuando da click a save saving debe ser false
-          onPressed: productService.isSaving
+          onPressed: productService.saving
               ? null // paraque ne se puede dar clcik en button
               : () async {
                   if (!productForm.isValidForm()) return;
 
                   final String? imageUrl = await productService.uploadImage();
 
-                  //  si existe asignar url https de cloudinary al product object salvado en breve en firebase
-                  if (imageUrl != null) productForm.product.picture = imageUrl;
+                  if (imageUrl != null) {
+                    if (imageUrl == 'error') {
+                      //print('Tamano de la imagen esta mal');
+                      NotificationsService.showSnackbar(
+                          'Tamaño img mal - actualiza img correcta');
+                      productService.saving = false;
+                      // resetear img da err de la memoria
+
+                      productForm.product.picture = null;
+                    } else {
+                      productForm.product.picture = imageUrl;
+                    }
+                  }
 
                   await productService.saveOrCreateProduct(productForm.product);
                 },

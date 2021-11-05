@@ -14,6 +14,7 @@ class AppState extends StatelessWidget {
     // podemos decir tenemos nuestros servicios injectados en el contexto en un punto mas alto de la app asi atraves del context obtengo acceso a los mismo en cualquier widget de al app
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(
           create: (_) => ProductsService(),
         )
@@ -29,12 +30,18 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Productos App',
-      initialRoute: 'home',
+      initialRoute: 'checking',
       routes: {
+        'checking': (_) => CheckAuthScreen(),
+        //
         'login': (_) => LoginScreen(),
+        'register': (_) => RegisterScreen(),
+        //
         'home': (_) => HomeScreen(),
         'product': (_) => ProductScreen(),
       },
+      // al hacer esto en cualquier lugar de mi app usando las prop staticas de este service ...puedo usar snackbar
+      scaffoldMessengerKey: NotificationsService.messengerKey,
       // personalizar elementos de forma global enl app
       theme: ThemeData.light().copyWith(
           scaffoldBackgroundColor: Colors.grey[300],

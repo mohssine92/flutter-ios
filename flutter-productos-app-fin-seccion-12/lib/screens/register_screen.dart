@@ -8,7 +8,7 @@ import 'package:productos_app/providers/login_form_provider.dart';
 import 'package:productos_app/ui/input_decorations.dart';
 import 'package:productos_app/widgets/widgets.dart';
 
-class LoginScreen extends StatelessWidget {
+class RegisterScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,10 +26,11 @@ class LoginScreen extends StatelessWidget {
               child: Column(
             children: [
               SizedBox(height: 10),
-              Text('Login', style: Theme.of(context).textTheme.headline4),
+              Text('Crear cuenta',
+                  style: Theme.of(context).textTheme.headline4),
               SizedBox(height: 30),
               ChangeNotifierProvider(
-                  // similar a multiprovider ,pero valido solo cando tenemos un providerç
+                  // similar a multiprovider ,pero valido solo cando tenemos un provider
                   //este provider solo le imporat al _loginForm
                   create: (_) => LoginFormProvider(),
                   child: _LoginForm() // formulario
@@ -39,15 +40,13 @@ class LoginScreen extends StatelessWidget {
 
           SizedBox(height: 50),
           TextButton(
-              onPressed: () =>
-                  // pushReplacementNamed porque no quiero regresar a la pagina interior
-                  Navigator.pushReplacementNamed(context, 'register'),
+              onPressed: () => Navigator.pushReplacementNamed(context, 'login'),
               style: ButtonStyle(
                   overlayColor:
                       MaterialStateProperty.all(Colors.indigo.withOpacity(0.1)),
                   shape: MaterialStateProperty.all(StadiumBorder())),
               child: Text(
-                'Crear una nueva cuenta',
+                '¿Ya tienes una cuenta?',
                 style: TextStyle(fontSize: 18, color: Colors.black87),
               )),
           SizedBox(height: 50),
@@ -62,8 +61,8 @@ class LoginScreen extends StatelessWidget {
 class _LoginForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final loginForm =
-        Provider.of<LoginFormProvider>(context); // buscar instancia provider
+    // buscar instancia provider
+    final loginForm = Provider.of<LoginFormProvider>(context);
 
     return Container(
       // siempre container si por si acaso quiero luego estilizar
@@ -135,6 +134,7 @@ class _LoginForm extends StatelessWidget {
                         // para desahabilatr button onPress tiene que ser nul
 
                         FocusScope.of(context).unfocus(); // quitar teclado
+                        // buscar servicio en el context - false no redibuje - estoy dentro de una funcion no build da err
                         final authService =
                             Provider.of<AuthService>(context, listen: false);
 
@@ -143,17 +143,19 @@ class _LoginForm extends StatelessWidget {
 
                         loginForm.isLoading = true; // ster - notifu - redibuja
 
-                        // TODO: validar si el login es correcto occupar un backend
                         //await Future.delayed(Duration(seconds: 2));
-                        final String? errorMessage = await authService.login(
-                            loginForm.email, loginForm.password);
 
+                        // TODO:  aqui occupamos algun backend para creacion  de user en algun db
+                        final String? errorMessage = await authService
+                            .createUser(loginForm.email, loginForm.password);
+
+                        print(errorMessage);
                         if (errorMessage == null) {
+                          // segun logica es nul - autenticacion exitosa
                           Navigator.pushReplacementNamed(context, 'home');
                         } else {
-                          //print(errorMessage);
                           // TODO: mostrar error en pantalla
-                          // print( errorMessage );
+                          print(errorMessage);
                           NotificationsService.showSnackbar(errorMessage);
                           loginForm.isLoading = false;
                         }

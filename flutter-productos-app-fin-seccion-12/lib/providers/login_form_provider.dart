@@ -25,3 +25,8 @@ class LoginFormProvider extends ChangeNotifier {
         false; // pude ser null , si esta asociado a un form , form valid regresa true sino ?? false
   }
 }
+
+
+
+// NB: los providers estamos usando en este punto para mantener formularios o el estado de al statelesswidget sin que sean statefulwidgets
+// o para compartir informacion a lo largo de los widgets

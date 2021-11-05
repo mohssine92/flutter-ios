@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import 'package:flutter/material.dart';
+
 import 'dart:io'; // File
 
 import 'package:productos_app/models/models.dart';
@@ -13,50 +16,63 @@ class ProductsService extends ChangeNotifier {
   // sera almacenado nueva instancia del index instaciaseleccionada con fin de romper refrencia y no manipular el mismo dentro de products = [];
   late Product selectedProduct;
 
+  // esta instancia es un siglton me trae las manipulacion de la misma instancia  en authservice
+  final storage = new FlutterSecureStorage();
+
   // es un archivo que estamos manteniendo en nuestro servicio lo cual aveces es nulo y aveces no
   File? newPictureFile;
 
   // saber cuando estoy cargando y cyando no
   bool isLoading = true;
-  bool isSaving = false;
+  bool _isSaving = false;
+
+  bool get saving {
+    return _isSaving;
+  }
+
+  void set saving(bool valor) {
+    _isSaving = valor;
+    notifyListeners();
+  }
 
   ProductsService() {
     this.loadProducts();
   }
 
   Future<List<Product>> loadProducts() async {
-    // con fin de redibujar loading miebtras la carga - ventaja de data centralizada
     this.isLoading = true;
     notifyListeners();
 
-    final url = Uri.https(_baseUrl, 'products.json');
+    // token de acceso lo mandamos en este caso como param de url - otro back lo solicitan en headers de request
+    final url = Uri.https(_baseUrl, 'products.json',
+        {'auth': await storage.read(key: 'token') ?? ''});
+
+    // peticion
     final resp = await http.get(url);
 
+    // TODO: tener en cuenta si la respuesta returna algo dif a lo esperado por tema de token caducado tendremos err en el foreach , debemos cortar proceso y redireccionar hacia login de nuevo es todo
+    // formatear la data
     final Map<String, dynamic> productsMap = json.decode(resp.body);
 
-    // esto es mapa y hacer literacione con mapas no es tan natural para nosostros - necesitamos que insertamos objetos en una lista
-    //  print(productsMap);
+    print(productsMap);
 
-    // los mapas tienem foreach
+    // pasarla en list
     productsMap.forEach((key, value) {
+      print(key);
+      print(value);
       final tempProduct = Product.fromMap(value);
-      // key de firebase se inserto como prop en el objeto
       tempProduct.id = key;
-      // insertar objetc en una lista prop del servicio - asi no hace fala que returnamos la misma - se le peude accede desde la injeccion
       this.products.add(tempProduct);
     });
 
-    // desparicion de loading
     this.isLoading = false;
     notifyListeners();
-
-    // print(this.products[0].name);
 
     return this.products; // inecesario
   }
 
   Future saveOrCreateProduct(Product product) async {
-    isSaving = true;
+    saving = true;
     notifyListeners();
 
     if (product.id == null) {
@@ -67,13 +83,14 @@ class ProductsService extends ChangeNotifier {
       await this.updateProduct(product);
     }
 
-    isSaving = false;
+    saving = false;
     notifyListeners();
   }
 
   Future<String> updateProduct(Product product) async {
     // actualizar db
-    final url = Uri.https(_baseUrl, 'products/${product.id}.json');
+    final url = Uri.https(_baseUrl, 'products/${product.id}.json',
+        {'auth': await storage.read(key: 'token') ?? ''});
     final resp = await http.put(url, body: product.toJson());
     // ignore: unused_local_variable
     final decodedData = resp.body;
@@ -91,7 +108,8 @@ class ProductsService extends ChangeNotifier {
 
   Future<String> createProduct(Product product) async {
     // save en db de firebase api
-    final url = Uri.https(_baseUrl, 'products.json');
+    final url = Uri.https(_baseUrl, 'products.json',
+        {'auth': await storage.read(key: 'token') ?? ''});
     final resp = await http.post(url, body: product.toJson());
     final decodedData = json.decode(resp.body);
 
@@ -121,7 +139,7 @@ class ProductsService extends ChangeNotifier {
     if (this.newPictureFile == null) return null;
 
     // con fin redibujar loading widget
-    this.isSaving = true;
+    this.saving = true;
     notifyListeners();
 
     // podemos hacer mediamte https , pero lo hacemos de otra forma que es parce
@@ -145,7 +163,7 @@ class ProductsService extends ChangeNotifier {
     if (resp.statusCode != 200 && resp.statusCode != 201) {
       print('algo salio mal');
       print(resp.body);
-      return null;
+      return 'error';
     }
 
     // resetearfile indicar que lo subi a la nube - y tambien no permite hacer proceso de subir a cloudibary en caso de update sin selecionar nuevo archivo
